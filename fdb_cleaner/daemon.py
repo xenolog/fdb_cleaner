@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 import eventlet
 eventlet.monkey_patch()
-from daemonize import Daemonize
+from daemonize_green import Daemonize
 import re
 
 
@@ -28,8 +28,8 @@ class Daemon(Daemonize):
         self.options = cfg
         self.auth_config = get_authconfig(cfg.get('authconf'))
         self.debug = cfg.get('debug')
-        super(Daemon, self).__init__(log_name, cfg['pid'], self.run, **kwargs)
-        self.logger.info("Daemon::init done...")
+        super(Daemon, self).__init__(log_name, cfg['pid'], **kwargs)
+        self.logger.info("Daemon::init done, debug={}...".format(self.debug))
 
     def sigterm(self, signum, frame):
         # put Your ctuff here
