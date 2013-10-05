@@ -7,6 +7,7 @@ import re
 def get_authconfig(cfg_file):
     """
     Read OS auth config file
+    cfg_file -- the path to config file
     """
     rv = {}
     stripchars = " \'\""
@@ -26,10 +27,11 @@ class Daemon(Daemonize):
         self.options = cfg
         self.auth_config = get_authconfig(cfg.get('authconf'))
         self.debug = cfg.get('debug')
+        self.loglevel = cfg.get('loglevel')
         super(Daemon, self).__init__(log_name, cfg['pid'], **kwargs)
         self.logger.info("Daemon::init done, debug={}...".format(self.debug))
 
-    def sigterm(self, signum, frame):
+    def _sigterm(self):
         # put Your ctuff here
         #
         #

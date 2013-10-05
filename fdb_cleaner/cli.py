@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import eventlet
-eventlet.monkey_patch()
 import os
 import sys
 import argparse
@@ -64,7 +62,9 @@ if __name__ == '__main__':
         LOG.setLevel(_log_level)
 
     LOG.info("Try to start daemon: {0}".format(' '.join(sys.argv)))
-    daemon = Daemon(vars(args), LOG_NAME)
+    cfg = vars(args)
+    cfg['loglevel'] = _log_level
+    daemon = Daemon(cfg, LOG_NAME)
     daemon.start()
     #cleaner = QuantumCleaner(get_authconfig(args.authconf), options=vars(args), log=LOG)
     #rc = 0
