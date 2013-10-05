@@ -6,9 +6,7 @@ import fcntl
 import os
 import sys
 import signal
-import resource
 import logging
-import atexit
 from logging import handlers
 
 
@@ -53,7 +51,7 @@ class Daemonize(object):
     - pid: path to the pidfile.
     """
 
-    def __init__(self, app, pid):
+    def __init__(self, app, pid, green_pool_size=1024):
         self.app = app
         self.pid = pid
         self.debug = getattr(self, 'debug', False)
@@ -81,6 +79,7 @@ class Daemonize(object):
                                       "%b %e %H:%M:%S")
         syslog.setFormatter(formatter)
         self.logger.addHandler(syslog)
+        self.green_pool = eventlet.greenpool.GreenPool(size=green_pool_size)
 
     def run(self):
         """

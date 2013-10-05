@@ -19,29 +19,33 @@ def get_authconfig(cfg_file):
     return rv
 
 
+import random, time
+def worker1(cls, n):
+    w = int(random.random()*30)
+    cls.logger.info(" task {} will be working while {} sec.".format(n,w))
+    time.sleep(w)
+    cls.logger.info("-task {} end of work.".format(n))
+
+
 class Daemon(Daemonize):
     """
     Main daemon class
     """
-    def __init__(self, cfg, log_name, **kwargs):
+    def __init__(self, cfg, log_name):
         self.options = cfg
         self.auth_config = get_authconfig(cfg.get('authconf'))
         self.debug = cfg.get('debug')
         self.loglevel = cfg.get('loglevel')
-        super(Daemon, self).__init__(log_name, cfg['pid'], **kwargs)
-        self.logger.info("Daemon::init done, debug={}...".format(self.debug))
+        super(Daemon, self).__init__(log_name, cfg['pid'], green_pool_size=2000)
 
-    def _sigterm(self):
-        # put Your ctuff here
-        #
-        #
-        super(Daemon, self).__init__(signum, frame)
-
-    def _run(self):
+    def run(self):
         # get credentionals for access to the keystone
         # ask keystone API, get token
         # ask nova-api for list nodes
         # process nodes
-        self.logger.info("Daemonized... run.method...")
-        pass
+        for i in xrange(10000):
+            self.green_pool.spawn_n(worker1, self, i)
+            self.logger.info("+spawned: {}".format(i))
+        self.green_pool.waitall()
+        self.logger.info("*** end of work")
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
