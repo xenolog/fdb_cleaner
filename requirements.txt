@@ -1,0 +1,8 @@
+paramiko>=1.10
+eventlet>=0.12
+greenlet>=0.4.0
+#cython
+#git+https://github.com/surfly/gevent.git@1.0rc2#egg=gevent
+python-quantumclient
+python-keystoneclient
+daemonize>=2.2.1
