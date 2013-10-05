@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import eventlet
-eventlet.monkey_patch()
 from daemonize_green import Daemonize
 import re
 
@@ -37,7 +35,7 @@ class Daemon(Daemonize):
         #
         super(Daemon, self).__init__(signum, frame)
 
-    def run(self):
+    def _run(self):
         # get credentionals for access to the keystone
         # ask keystone API, get token
         # ask nova-api for list nodes

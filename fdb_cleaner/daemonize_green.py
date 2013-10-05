@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+import eventlet
+eventlet.monkey_patch()
 import fcntl
 import os
 import sys
@@ -11,6 +12,40 @@ import atexit
 from logging import handlers
 
 
+RunningGreenDaemons = set()
+
+
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())
+
+
+def sigterm_handler(signum, frame):
+    """
+    Call actions will be done after SIGTERM.
+    """
+    for daemon in RunningGreenDaemons:
+        daemon.sigterm(signum)
+    sys.exit(0)
+
+
+def sighup_handler(signum, frame):
+    """
+    Call actions will be done after SIGHUP.
+    """
+    for daemon in RunningGreenDaemons:
+        daemon.sighup(signum)
+
+
 class Daemonize(object):
     """ Daemonize object
     Object constructor expects three arguments:
@@ -19,6 +54,7 @@ class Daemonize(object):
     - action: your custom function which will be executed after daemonization.
     - keep_fds: optional list of fds which should not be closed.
     """
+
     def __init__(self, app, pid, keep_fds=None):
         self.app = app
         self.pid = pid
@@ -28,7 +64,7 @@ class Daemonize(object):
             self.keep_fds = keep_fds
         else:
             self.keep_fds = []
-        # Initialize logging.
+            # Initialize logging.
         self.logger = logging.getLogger(self.app)
         self.logger.setLevel(logging.DEBUG)
         # Display log messages only on defined handlers.
@@ -47,74 +83,63 @@ class Daemonize(object):
         syslog.setFormatter(formatter)
         self.logger.addHandler(syslog)
 
-    def sigterm(self, signum, frame):
-        """ sigterm method
-        These actions will be done after SIGTERM.
-        """
-        self.logger.warn("Caught signal %s. Stopping daemon." % signum)
-        os.remove(self.pid)
-        sys.exit(0)
-
     def run(self):
         """
         Method representing the thread’s activity.
         You may override this method in a subclass.
         """
+        import time
+        time.sleep(25)
         self.logger.warn("green-daemon body. You must redefine run() method ")
+
+    def sighup(self, signum):
+        self.logger.warn("Caught signal %s. Reloading." % signum)
+
+    def sigterm(self, signum):
+        self.logger.warn("Caught signal %s. Stopping daemon." % signum)
+        os.remove(self.pid)
 
     def start(self):
         """ start method
         Main daemonization process.
         """
-        self.logger.warn("before 1st fork")
-        # Fork, creating a new process for the child.
-        process_id = os.fork()
-        if process_id < 0:
-            # Fork error. Exit badly.
-            self.logger.warn("1-st fork error. PID={}".format(process_id))
+
+        RunningGreenDaemons.add(self)
+
+        try:
+            if os.fork() > 0:
+                sys.exit(0)     # kill off parent
+        except OSError as e:
+            self.logger.error("fork #1 failed: {errno} {errmsg}".format(errno=e.errno, errmsg=e.strerror))
             sys.exit(1)
-        elif process_id != 0:
-            # This is the parent process. Exit.
-            self.debug and self.logger.warn("1-st fork succeful, PID={}".format(process_id))
-            sys.exit(0)
-        self.debug and self.logger.warn("new process after 1st fork")
-        # This is the child process. Continue.
+        self.logger.debug("fork #1 succeful.")
+        os.setsid()
+        os.chdir('/')
+        os.umask(0o022)
 
-        # Stop listening for signals that the parent process receives.
-        # This is done by getting a new process id.
-        # setpgrp() is an alternative to setsid().
-        # setsid puts the process in a new parent group and detaches its controlling terminal.
-        ssid = os.setsid()
-        if ssid == -1:
-            # Uh oh, there was a problem.
-            self.debug and self.logger.warn("setsid() call was a problem, PID={}".format(process_id))
+        # Second fork
+        try:
+            if os.fork() > 0:
+                sys.exit(0)
+        except OSError as e:
+            self.logger.error("fork #2 failed: {errno} {errmsg}".format(errno=e.errno, errmsg=e.strerror))
             sys.exit(1)
+        self.logger.debug("fork #1 succeful.")
 
-        # Close all file descriptors, except the ones mentioned in self.keep_fds.
-        devnull = "/dev/null"
-        if hasattr(os, "devnull"):
-            # Python has set os.devnull on this system, use it instead as it might be different
-            # than /dev/null.
-            devnull = os.devnull
+        devnull = os.devnull if hasattr(os, "devnull") else "/dev/null"
+        si = os.open(devnull, os.O_RDWR)
+        os.dup2(si, sys.stdin.fileno())
 
-        for fd in range(resource.getrlimit(resource.RLIMIT_NOFILE)[0]):
-            if fd not in self.keep_fds:
-                try:
-                    os.close(fd)
-                except OSError:
-                    pass
+        sys.stdout = StreamToLogger(self.logger, logging.INFO)
+        sys.stderr = StreamToLogger(self.logger, logging.ERROR)
 
-        os.open(devnull, os.O_RDWR)
-        os.dup(0)
-        os.dup(0)
-
-        # Set umask to default to safe file permissions when running as a root daemon. 027 is an
-        # octal number which we are typing as 0o27 for Python3 compatibility.
-        os.umask(0o27)
-
-        # Change to a known directory. If this isn't done, starting a daemon in a subdirectory that
-        # needs to be deleted results in "directory busy" errors.
-        os.chdir("/")
+        ## Close all file descriptors, except the ones mentioned in self.keep_fds.
+        #for fd in range(resource.getrlimit(resource.RLIMIT_NOFILE)[0]):
+        #    if fd not in self.keep_fds:
+        #        try:
+        #            os.close(fd)
+        #        except OSError:
+        #            pass
 
         # Create a lockfile so that only one instance of this daemon is running at any time.
         lockfile = open(self.pid, "w")
@@ -123,13 +148,14 @@ class Daemonize(object):
         fcntl.lockf(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         # Record the process id to the lockfile. This is standard practice for daemons.
-        lockfile.write("%s" % (os.getpid()))
+        pid = os.getpid()
+        lockfile.write("{pid}".format(pid=pid))
         lockfile.flush()
 
         # Set custom action on SIGTERM.
-        signal.signal(signal.SIGTERM, self.sigterm)
-        atexit.register(self.sigterm)
+        signal.signal(signal.SIGTERM, sigterm_handler)
+        signal.signal(signal.SIGHUP, sighup_handler)
 
-        self.logger.warn("Starting daemon.")
+        self.logger.info("Daemonized succefuly, PID={pid}".format(pid=pid))
 
         self.run()

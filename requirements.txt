@@ -5,4 +5,3 @@ greenlet>=0.4.0
 #git+https://github.com/surfly/gevent.git@1.0rc2#egg=gevent
 python-quantumclient
 python-keystoneclient
-daemonize>=2.2.1

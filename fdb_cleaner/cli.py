@@ -65,9 +65,7 @@ if __name__ == '__main__':
 
     LOG.info("Try to start daemon: {0}".format(' '.join(sys.argv)))
     daemon = Daemon(vars(args), LOG_NAME)
-    LOG.info("before  daemon.start")
     daemon.start()
-    LOG.info("after   daemon.start")
     #cleaner = QuantumCleaner(get_authconfig(args.authconf), options=vars(args), log=LOG)
     #rc = 0
     #if vars(args).get('test-hostnames'):
