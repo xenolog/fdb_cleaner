@@ -1,22 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from daemonize_green import Daemonize
-import re
+from config import AuthConfig
+from settings import LOG_NAME
 
-
-def get_authconfig(cfg_file):
-    """
-    Read OS auth config file
-    cfg_file -- the path to config file
-    """
-    rv = {}
-    stripchars = " \'\""
-    with open(cfg_file) as f:
-        for line in f:
-            rg = re.match(r'\s*export\s+(\w+)\s*=\s*(.*)', line)
-            if rg:
-                rv[rg.group(1).strip(stripchars)] = rg.group(2).strip(stripchars)
-    return rv
 
 
 import random, time
@@ -31,9 +18,9 @@ class Daemon(Daemonize):
     """
     Main daemon class
     """
-    def __init__(self, cfg, log_name):
+    def __init__(self, cfg, log_name=LOG_NAME):
         self.options = cfg
-        self.auth_config = get_authconfig(cfg.get('authconf'))
+        self.auth_config = AuthConfig.read(cfg.get('authconf'))
         self.debug = cfg.get('debug')
         self.loglevel = cfg.get('loglevel')
         super(Daemon, self).__init__(log_name, cfg['pid'], green_pool_size=2000)
@@ -48,4 +35,5 @@ class Daemon(Daemonize):
             self.logger.info("+spawned: {}".format(i))
         self.green_pool.waitall()
         self.logger.info("*** end of work")
+
 # vim: tabstop=4 shiftwidth=4 softtabstop=4

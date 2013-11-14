@@ -4,11 +4,9 @@ import os
 import sys
 import argparse
 import logging
+import logging.handlers
+from settings import LOG_NAME
 from daemon import Daemon
-
-
-LOG_NAME='quantum-fdb-cleaner'
-API_VER = '2.0'
 
 
 def main():
