@@ -97,7 +97,7 @@ class Daemonize(object):
         self.logger.warn("Caught signal TERM. Stopping daemon.")
         self.remove_pidfile()
 
-    def create_pidfile(self):
+    def create_pidfile(self, recurse=10):
         """
         Create a locked PID-file so that only one instance of this daemon is running at any time.
         """
@@ -106,8 +106,48 @@ class Daemonize(object):
         except OSError as e:
             self.logger.debug("errno='{0}'".format(e.errno))
             if e.errno in [errno.EACCES, errno.EAGAIN, errno.EEXIST]:
-                self.logger.error("Can't create PID-file. "
-                                  "Pidfile '{file}' already exists and exclusive locked.".format(file=self.pidfile))
+                self.logger.warn("Can't create PID-file. "
+                                 "Pidfile '{file}' already exists.".format(file=self.pidfile))
+                #find process with PID of it file
+                try:
+                    with open(self.pidfile, 'r') as f:
+                        pid = f.readline()
+                        try:
+                            pid = int(pid)
+                        except ValueError:
+                            pid = 0
+                        if pid > 0:
+                            try:
+                                os.kill(pid, 0)
+                                self.logger.error(
+                                    "Process with PID {0} found, exiting...".format(pid)
+                                )
+                                sys.exit(2)
+                            except OSError as e:
+                                if e.errno == errno.ESRCH and recurse > 0:
+                                    self.logger.debug(
+                                        "Found PID-file, but process with PID={0} not found".format(pid)
+                                    )
+                                    os.unlink(self.pidfile)
+                                    return self.create_pidfile(recurse=recurse-1)
+                                elif recurse <= 0:
+                                    self.logger.error(
+                                        "Can't start daemon, due can't remove existing "
+                                        "PID-file '{0}' from another.".format(self.pidfile)
+                                    )
+                                    sys.exit(2)
+                                else:
+                                    self.logger.error(
+                                        "Process with PID {0} found, exiting...".format(pid)
+                                    )
+                                    sys.exit(2)
+                        else:
+                            self.logger.debug("Found PID-file, that contains no PID.")
+                            os.unlink(self.pidfile)
+                            return self.create_pidfile(recurse=recurse-1)
+                except IOError as e:
+                        self.logger.error("Can't read PID from file '{file}'\n{err}".format(file=self.pidfile, err=e))
+                        sys.exit(2)
             else:
                 self.logger.error("Can't create PID-file.\n{0}".format(e))
             sys.exit(1)
