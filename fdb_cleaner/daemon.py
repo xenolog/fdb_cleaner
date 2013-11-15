@@ -125,7 +125,8 @@ class Daemon(Daemonize):
         return self.neutron.list_agents()
 
     def run(self):
-        time.sleep(310)
+        time.sleep(60)
+        self.remove_pidfile()
 
     def __run(self):
         time.sleep(10)
@@ -150,5 +151,6 @@ class Daemon(Daemonize):
         self.green_pool.waitall()
         self.logger.info("*** end of work")
         time.sleep(10)
+        self.remove_pidfile()
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
