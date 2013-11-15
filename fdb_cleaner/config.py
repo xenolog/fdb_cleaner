@@ -41,7 +41,7 @@ class BaseAuthConfig(object):
             sys.exit(errno.ENOENT)
         # error detection
         exit_msg = []
-        for i,e in auth_conf_errors:
+        for i,e in auth_conf_errors.iteritems():
             if rv.get(i) is None:
                 exit_msg.append(e)
         if len(exit_msg) > 0:

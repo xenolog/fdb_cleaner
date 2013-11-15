@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import eventlet
+eventlet.monkey_patch()
 from keystoneclient.v2_0 import client as ks_client
 try:
     from neutronclient.neutron import client as n_client
@@ -13,6 +15,7 @@ import os
 import re
 import random
 import time
+import paramiko
 
 
 def worker1(cls, n):
@@ -25,7 +28,19 @@ def worker1(cls, n):
 def execute_remote_command(cls, node_hash):
     # ssh to node
     # cls.logger.info('bla-bla-bla')
-    pass
+    cls.logger.info(" ssh to '{node}'".format(node=node_hash.get('host')))
+    ssh = paramiko.SSHClient()
+    ssh.load_system_host_keys()
+    ssh.connect(
+        node_hash.get('host'),
+        username=cls.options.get('ssh_username'),
+        port=cls.options.get('ssh_port') or None,
+        timeout=cls.options.get('ssh_timeout') or None,
+        key_filename=cls.options.get('ssh_username') or None,
+        compress=False
+    )
+    w = int(random.random() * 30)
+    stdin, stdout, stderr = ssh.exec_command("sleep {q}".format(w))
 
 class Daemon(Daemonize):
     """

@@ -36,6 +36,10 @@ if __name__ == '__main__':
                         help="Username for ssh connect", metavar="UNAME")
     parser.add_argument("--ssh-keyfile", dest="ssh_keyfile", action="append",
                         help="SSH key file", metavar="FILE")
+    parser.add_argument("--ssh-port", dest="ssh_port", type=int, default=22,
+                        help="Port for SSH connection", metavar="NN")
+    parser.add_argument("--ssh-timeout", dest="ssh_timeout", type=int, default=120,
+                        help="Timeout for SSH session", metavar="SEC")
     parser.add_argument("--noop", dest="noop", action="store_true", default=False,
                         help="do not execute, print to log instead")
     parser.add_argument("--debug", dest="debug", action="store_true", default=False,
