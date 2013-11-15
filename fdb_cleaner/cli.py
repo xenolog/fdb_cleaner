@@ -74,7 +74,7 @@ if __name__ == '__main__':
     LOG.info("Try to start daemon: {0}".format(' '.join(sys.argv)))
     cfg = vars(args)
     cfg['loglevel'] = _log_level
-    daemon = Daemon(cfg, LOG_NAME)
+    daemon = Daemon(cfg, logger=LOG)
     daemon.start()
     #cleaner = QuantumCleaner(get_authconfig(args.authconf), options=vars(args), log=LOG)
     #rc = 0

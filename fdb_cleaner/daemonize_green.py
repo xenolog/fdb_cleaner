@@ -51,12 +51,11 @@ class Daemonize(object):
     - pid: path to the pidfile.
     """
 
-    def __init__(self, app, pid, green_pool_size=1024):
-        self.app = app
+    def __init__(self, pid, logger=None, green_pool_size=1024):
         self.pid = pid
         self.debug = getattr(self, 'debug', False)
         # Initialize logging.
-        self.logger = logging.getLogger(self.app)
+        self.logger = logger or logging.getLogger()
         if self.debug:
             self.loglevel = logging.DEBUG
         elif hasattr(self, 'loglevel'):
@@ -66,19 +65,19 @@ class Daemonize(object):
         self.logger.setLevel(self.loglevel)
         # Display log messages only on defined handlers.
         self.logger.propagate = False
-        # It will work on OS X and Linux. No FreeBSD support, guys, I don't want to import re here
-        # to parse your peculiar platform string.
-        if sys.platform == "darwin":
-            syslog_address = "/var/run/syslog"
-        else:
-            syslog_address = "/dev/log"
-        syslog = handlers.SysLogHandler(syslog_address)
-        syslog.setLevel(self.loglevel)
+        ## It will work on OS X and Linux. No FreeBSD support, guys, I don't want to import re here
+        ## to parse your peculiar platform string.
+        #if sys.platform == "darwin":
+        #    syslog_address = "/var/run/syslog"
+        #else:
+        #    syslog_address = "/dev/log"
+        #syslog = handlers.SysLogHandler(syslog_address)
+        #syslog.setLevel(self.loglevel)
         # Try to mimic to normal syslog messages.
         formatter = logging.Formatter("%(asctime)s %(name)s: %(message)s",
                                       "%b %e %H:%M:%S")
-        syslog.setFormatter(formatter)
-        self.logger.addHandler(syslog)
+        #syslog.setFormatter(formatter)
+        #self.logger.addHandler(syslog)
         self.green_pool = eventlet.greenpool.GreenPool(size=green_pool_size)
 
     def run(self):
@@ -140,7 +139,8 @@ class Daemonize(object):
         lockfile = open(self.pid, "w")
         # Try to get an exclusive lock on the file. This will fail if another process has the file
         # locked.
-        fcntl.lockf(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        #fcntl.lockf(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.lockf(lockfile, fcntl.LOCK_EX)
 
         # Record the process id to the lockfile. This is standard practice for daemons.
         pid = os.getpid()

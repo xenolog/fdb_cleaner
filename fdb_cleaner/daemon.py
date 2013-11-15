@@ -58,7 +58,7 @@ class Daemon(Daemonize):
     """
     Main daemon class
     """
-    def __init__(self, cfg, log_name=LOG_NAME, green_pool_size=2000):
+    def __init__(self, cfg, logger=None, green_pool_size=2000):
         self.options = cfg
         self.auth_config = AuthConfig.read(cfg.get('authconf'))
         self.debug = cfg.get('debug')
@@ -66,7 +66,7 @@ class Daemon(Daemonize):
         self.os_credentials = None
         self.keystone = None
         self.neutron = None
-        super(Daemon, self).__init__(log_name, cfg['pid'], green_pool_size=green_pool_size)
+        super(Daemon, self).__init__(cfg['pid'], logger, green_pool_size=green_pool_size)
 
     def _get_keystone(self):
         if not (self.os_credentials is None):
@@ -125,6 +125,9 @@ class Daemon(Daemonize):
         return self.neutron.list_agents()
 
     def run(self):
+        time.sleep(310)
+
+    def __run(self):
         time.sleep(10)
         # get credentials
         self._get_keystone()
