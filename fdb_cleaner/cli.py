@@ -34,6 +34,8 @@ if __name__ == '__main__':
     #                    help="integration bridge name", metavar="IFACE")
     parser.add_argument("--ssh-username", dest="ssh_username", action="store", default='root',
                         help="Username for ssh connect", metavar="UNAME")
+    parser.add_argument("--ssh-password", dest="ssh_password", action="store", default=None,
+                        help="Password for ssh connect", metavar="PASSWD")
     parser.add_argument("--ssh-keyfile", dest="ssh_keyfile", action="append",
                         help="SSH key file", metavar="FILE")
     parser.add_argument("--ssh-port", dest="ssh_port", type=int, default=22,

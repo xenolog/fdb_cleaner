@@ -16,6 +16,7 @@ import re
 import random
 import time
 import paramiko
+import socket
 
 
 def worker1(cls, n):
@@ -28,13 +29,24 @@ def worker1(cls, n):
 def execute_remote_command(cls, node_hash):
     # ssh to node
     # cls.logger.info('bla-bla-bla')
-    cls.logger.info(" ssh to '{node}'".format(node=node_hash.get('host')))
+    host = socket.gethostbyname(node_hash.get('host'))
+    addr = (host, cls.options.get('ssh_port') or 22)
+    cls.logger.debug("Connect to {0}".format(addr))
+    time.sleep(10)
+    sock = eventlet.connect(addr, family=2, bind=None)
+    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #sock.connect()
+    #sock.setblocking(1)
+    cls.logger.info(" ssh to '{node} ({host}:{port})'".format(node=node_hash.get('host'), host=host, port=cls.options.get('ssh_port')))
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(
-        node_hash.get('host'),
+        host,
+        sock=sock,
+        #port=cls.options.get('ssh_port') or None,
         username=cls.options.get('ssh_username'),
-        port=cls.options.get('ssh_port') or None,
+        password=cls.options.get('ssh_password') or None,
         timeout=cls.options.get('ssh_timeout') or None,
         key_filename=cls.options.get('ssh_username') or None,
         compress=False
@@ -113,6 +125,7 @@ class Daemon(Daemonize):
         return self.neutron.list_agents()
 
     def run(self):
+        time.sleep(10)
         # get credentials
         self._get_keystone()
         # get neutron interface object
@@ -128,9 +141,11 @@ class Daemon(Daemonize):
         ]
         # process nodes
         for node in nodes:
+            self.logger.debug("+spawning: {}".format(node.get('host')))
             self.green_pool.spawn_n(execute_remote_command, self, node)
             self.logger.info("+spawned: {}".format(node.get('host')))
         self.green_pool.waitall()
         self.logger.info("*** end of work")
+        time.sleep(10)
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
