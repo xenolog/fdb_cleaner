@@ -16,20 +16,32 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Quantum network node cleaning tool.')
     parser.add_argument("-c", "--auth-config", dest="authconf", default="/root/openrc",
                         help="Authenticating config FILE", metavar="FILE")
+    parser.add_argument("-l", "--log", dest="log", action="store",
+                        help="log file or logging.conf location")
+    parser.add_argument("-p", "--pid", dest="pid", action="store",
+                        help="PID file", default="/tmp/{0}.pid".format(LOG_NAME))
     parser.add_argument("--retries", dest="retries", type=int, default=50,
                         help="try NN retries for OpenStack API call", metavar="NN")
     parser.add_argument("--sleep", dest="sleep", type=int, default=2,
                         help="sleep seconds between retries", metavar="SEC")
-    parser.add_argument("--activeonly", dest="activeonly", action="store_true", default=False,
-                        help="cleanup table only on active nodes")
-    parser.add_argument("--external-bridge", dest="external-bridge", default="br-ex",
-                        help="external bridge name", metavar="IFACE")
-    parser.add_argument("--integration-bridge", dest="integration-bridge", default="br-int",
-                        help="integration bridge name", metavar="IFACE")
-    parser.add_argument("-l", "--log", dest="log", action="store",
-                        help="log file or logging.conf location")
-    parser.add_argument("-p", "--pid", dest="pid", action="store",
-                        help="PID file", default="/tmp/{}.pid".format(LOG_NAME))
+    parser.add_argument("--endpoint-type", dest="endpoint_type", action="store", default="admin",
+                        help="Endpoint type ('admin' or 'public') for use.", metavar="TYPE")
+    #parser.add_argument("--activeonly", dest="activeonly", action="store_true", default=False,
+    #                    help="cleanup table only on active nodes")
+    #parser.add_argument("--external-bridge", dest="external-bridge", default="br-ex",
+    #                    help="external bridge name", metavar="IFACE")
+    #parser.add_argument("--integration-bridge", dest="integration-bridge", default="br-int",
+    #                    help="integration bridge name", metavar="IFACE")
+    parser.add_argument("--ssh-username", dest="ssh_username", action="store", default='root',
+                        help="Username for ssh connect", metavar="UNAME")
+    parser.add_argument("--ssh-password", dest="ssh_password", action="store", default=None,
+                        help="Password for ssh connect", metavar="PASSWD")
+    parser.add_argument("--ssh-keyfile", dest="ssh_keyfile", action="append",
+                        help="SSH key file", metavar="FILE")
+    parser.add_argument("--ssh-port", dest="ssh_port", type=int, default=22,
+                        help="Port for SSH connection", metavar="NN")
+    parser.add_argument("--ssh-timeout", dest="ssh_timeout", type=int, default=120,
+                        help="Timeout for SSH session", metavar="SEC")
     parser.add_argument("--noop", dest="noop", action="store_true", default=False,
                         help="do not execute, print to log instead")
     parser.add_argument("--debug", dest="debug", action="store_true", default=False,
@@ -62,7 +74,7 @@ if __name__ == '__main__':
     LOG.info("Try to start daemon: {0}".format(' '.join(sys.argv)))
     cfg = vars(args)
     cfg['loglevel'] = _log_level
-    daemon = Daemon(cfg, LOG_NAME)
+    daemon = Daemon(cfg, logger=LOG)
     daemon.start()
     #cleaner = QuantumCleaner(get_authconfig(args.authconf), options=vars(args), log=LOG)
     #rc = 0

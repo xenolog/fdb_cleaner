@@ -62,7 +62,6 @@ class QuantumCleaner(object):
         }
 
         ret_count = self.options.get('retries',1)
-
         while True:
             if ret_count <= 0 :
                 print(">>> Keystone error: no more retries for connect to keystone server.")

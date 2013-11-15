@@ -21,8 +21,15 @@ class BaseAuthConfig(object):
         Read OS auth config file
         cfg_file -- the path to config file
         """
+        auth_conf_errors = {
+            'OS_TENANT_NAME': 'Missing tenant name.',
+            'OS_USERNAME': 'Missing username.',
+            'OS_PASSWORD': 'Missing password.',
+            'OS_AUTH_URL': 'Missing API url.',
+        }
         rv = {}
         stripchars = " \'\""
+        LOG = logging.getLogger(LOG_NAME)
         try:
             with open(cfg_file) as f:
                 for line in f:
@@ -30,9 +37,17 @@ class BaseAuthConfig(object):
                     if rg:
                         rv[rg.group(1).strip(stripchars)] = rg.group(2).strip(stripchars)
         except IOError:
-            LOG = logging.getLogger(LOG_NAME)
             LOG.error("Can't open file '{path}'".format(path=cfg_file))
             sys.exit(errno.ENOENT)
+        # error detection
+        exit_msg = []
+        for i,e in auth_conf_errors.iteritems():
+            if rv.get(i) is None:
+                exit_msg.append(e)
+        if len(exit_msg) > 0:
+            for msg in exit_msg:
+                LOG.error("AUTH-config error: '{msg}'".format(msg=msg))
+            sys.exit(errno.EPROTO)
         return rv
 
     def read(self, cfg_filename='/root/openrc'):
