@@ -19,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--log", dest="log", action="store",
                         help="log file or logging.conf location")
     parser.add_argument("-p", "--pid", dest="pid", action="store",
-                        help="PID file", default="/tmp/{}.pid".format(LOG_NAME))
+                        help="PID file", default="/tmp/{0}.pid".format(LOG_NAME))
     parser.add_argument("--retries", dest="retries", type=int, default=50,
                         help="try NN retries for OpenStack API call", metavar="NN")
     parser.add_argument("--sleep", dest="sleep", type=int, default=2,

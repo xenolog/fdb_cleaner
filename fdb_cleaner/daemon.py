@@ -20,9 +20,9 @@ import paramiko
 
 def worker1(cls, n):
     w = int(random.random()*30)
-    cls.logger.info(" task {} will be working while {} sec.".format(n,w))
+    cls.logger.info(" task {0} will be working while {1} sec.".format(n,w))
     time.sleep(w)
-    cls.logger.info("-task {} end of work.".format(n))
+    cls.logger.info("-task {0} end of work.".format(n))
 
 
 def execute_remote_command(cls, node_hash):
