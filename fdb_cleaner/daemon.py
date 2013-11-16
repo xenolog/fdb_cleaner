@@ -16,43 +16,28 @@ import re
 import random
 import time
 import paramiko
-import socket
-
-
-def worker1(cls, n):
-    w = int(random.random()*30)
-    cls.logger.info(" task {0} will be working while {1} sec.".format(n,w))
-    time.sleep(w)
-    cls.logger.info("-task {0} end of work.".format(n))
 
 
 def execute_remote_command(cls, node_hash):
     # ssh to node
-    # cls.logger.info('bla-bla-bla')
-    host = socket.gethostbyname(node_hash.get('host'))
-    addr = (host, cls.options.get('ssh_port') or 22)
-    cls.logger.debug("Connect to {0}".format(addr))
-    time.sleep(10)
-    sock = eventlet.connect(addr, family=2, bind=None)
-    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #sock.connect()
-    #sock.setblocking(1)
-    cls.logger.info(" ssh to '{node} ({host}:{port})'".format(node=node_hash.get('host'), host=host, port=cls.options.get('ssh_port')))
+    cls.logger.info(" ssh to '{node}:{port}'".format(node=node_hash.get('host'), port=cls.options.get('ssh_port', '22')))
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(
-        host,
-        sock=sock,
-        #port=cls.options.get('ssh_port') or None,
+        node_hash.get('host'),
+        port=cls.options.get('ssh_port') or None,
         username=cls.options.get('ssh_username'),
         password=cls.options.get('ssh_password') or None,
         timeout=cls.options.get('ssh_timeout') or None,
-        key_filename=cls.options.get('ssh_username') or None,
-        compress=False
+        key_filename=cls.options.get('ssh_keyfile') or None,
     )
-    w = int(random.random() * 30)
-    stdin, stdout, stderr = ssh.exec_command("sleep {q}".format(w))
+    w = int(random.random() * 120)
+    stdin, stdout, stderr = ssh.exec_command("sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(
+        w,
+        node_hash.get('host'),
+        os.getpid()
+    ))
 
 class Daemon(Daemonize):
     """
@@ -129,7 +114,6 @@ class Daemon(Daemonize):
         self.remove_pidfile()
 
     def run(self):
-        time.sleep(10)
         # get credentials
         self._get_keystone()
         # get neutron interface object
@@ -147,7 +131,7 @@ class Daemon(Daemonize):
         for node in nodes:
             self.logger.debug("+spawning: {0}".format(node.get('host')))
             self.green_pool.spawn_n(execute_remote_command, self, node)
-            self.logger.info("+spawned: {0}".format(node.get('host')))
+            self.logger.debug("+spawned: {0}".format(node.get('host')))
         self.green_pool.waitall()
         self.logger.info("*** end of work")
         time.sleep(10)
