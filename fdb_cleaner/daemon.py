@@ -124,11 +124,11 @@ class Daemon(Daemonize):
         #todo: catch some exceptions for retry
         return self.neutron.list_agents()
 
-    def run(self):
+    def __run(self):
         time.sleep(60)
         self.remove_pidfile()
 
-    def __run(self):
+    def run(self):
         time.sleep(10)
         # get credentials
         self._get_keystone()
@@ -145,9 +145,9 @@ class Daemon(Daemonize):
         ]
         # process nodes
         for node in nodes:
-            self.logger.debug("+spawning: {}".format(node.get('host')))
+            self.logger.debug("+spawning: {0}".format(node.get('host')))
             self.green_pool.spawn_n(execute_remote_command, self, node)
-            self.logger.info("+spawned: {}".format(node.get('host')))
+            self.logger.info("+spawned: {0}".format(node.get('host')))
         self.green_pool.waitall()
         self.logger.info("*** end of work")
         time.sleep(10)
