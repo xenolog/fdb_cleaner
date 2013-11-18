@@ -133,12 +133,28 @@ class Daemon(Daemonize):
             #compress=False,
         )
         w = int(random.random() * 120)
-        stdin, stdout, stderr = ssh.exec_command(
-            "sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(w, node_hash.get('host'), os.getpid()),
-            #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
-            #get_pty=False
-        )
-        self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
+        rcommands = [
+            "sleep {0}".format(w),
+            "ls -la /",
+            "echo {0} > /tmp/qqq-{1}.txt".format(node_hash.get('host'), os.getpid()),
+        ]
+        for rcmd in rcommands:
+            try:
+                stdin, stdout, stderr = ssh.exec_command(
+                    rcmd,
+                    #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
+                    #get_pty=False
+                )
+                #for line in stdout:
+                #    # pass
+                #    self.logger.debug("remote say: '{0}'".format(line.rstrip("\n")))
+                # waiting execute command and get return-code.
+                rc = stdout.channel.recv_exit_status()
+                self.logger.debug("rc={0}".format(rc))
+            except paramiko.SSHException as e:
+                self.logger.debug("catch exception on none '{node}'\n{e}".format(node=node_hash.get('host'), e=e))
+                #raise(e)
 
+        self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
