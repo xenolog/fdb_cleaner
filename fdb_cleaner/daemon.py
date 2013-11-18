@@ -31,13 +31,16 @@ def execute_remote_command(cls, node_hash):
         password=cls.options.get('ssh_password') or None,
         timeout=cls.options.get('ssh_timeout') or None,
         key_filename=cls.options.get('ssh_keyfile') or None,
+        #compress=False,
     )
     w = int(random.random() * 120)
-    stdin, stdout, stderr = ssh.exec_command("sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(
-        w,
-        node_hash.get('host'),
-        os.getpid()
-    ))
+    stdin, stdout, stderr = ssh.exec_command(
+        "sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(w, node_hash.get('host'), os.getpid()),
+        #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
+        #get_pty=False
+    )
+    cls.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
+
 
 class Daemon(Daemonize):
     """
