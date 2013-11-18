@@ -1,4 +1,4 @@
-paramiko>=1.10
+paramiko>=1.12
 eventlet>=0.12
 greenlet>=0.4.0
 #cython

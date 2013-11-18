@@ -134,9 +134,10 @@ class Daemon(Daemonize):
         )
         w = int(random.random() * 120)
         rcommands = [
-            "sleep {0}".format(w),
-            "ls -la /",
-            "echo {0} > /tmp/qqq-{1}.txt".format(node_hash.get('host'), os.getpid()),
+            "ovs-appctl fdb/flush",
+            #"sleep {0}".format(w),
+            #"ls -la /",
+            #"echo {0} > /tmp/qqq-{1}.txt".format(node_hash.get('host'), os.getpid()),
         ]
         for rcmd in rcommands:
             try:
@@ -150,9 +151,21 @@ class Daemon(Daemonize):
                 #    self.logger.debug("remote say: '{0}'".format(line.rstrip("\n")))
                 # waiting execute command and get return-code.
                 rc = stdout.channel.recv_exit_status()
-                self.logger.debug("rc={0}".format(rc))
+                err_msg = "{node}: '{cmd}', rc={rc}".format(
+                    node=node_hash.get('host'),
+                    cmd=rcmd,
+                    rc=rc
+                )
+                if rc == 0:
+                    self.logger.debug(err_msg)
+                else:
+                    self.logger.error(err_msg)
             except paramiko.SSHException as e:
-                self.logger.debug("catch exception on none '{node}'\n{e}".format(node=node_hash.get('host'), e=e))
+                self.logger.error("{node}: '{cmd}', exception:\n{error}".format(
+                    node=node_hash.get('host'),
+                    cmd=rcmd,
+                    error=e
+                ))
                 #raise(e)
 
         self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
