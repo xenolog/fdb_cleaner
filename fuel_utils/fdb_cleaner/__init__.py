@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import eventlet
+eventlet.monkey_patch()
 import os
 import sys
 import argparse
 import logging
 import logging.handlers
-from settings import LOG_NAME
-from daemon import Daemon
+from fuel_utils.fdb_cleaner.settings import LOG_NAME
+from fuel_utils.fdb_cleaner.daemon import Daemon
 
 
 def main():
     parser = argparse.ArgumentParser(description='Quantum network node cleaning tool.')
     parser.add_argument("-c", "--auth-config", dest="authconf", default="/root/openrc",
                         help="Authenticating config FILE", metavar="FILE")
-    parser.add_argument("-l", "--log", dest="log", action="store",
+    parser.add_argument("-l", "--log", dest="log", action="store", default=None,
                         help="log file or logging.conf location")
     parser.add_argument("-p", "--pid", dest="pid", action="store",
                         help="PID file", default="/tmp/{0}.pid".format(LOG_NAME))
@@ -32,9 +34,7 @@ def main():
     parser.add_argument("--ssh-port", dest="ssh_port", type=int, default=22,
                         help="Port for SSH connection", metavar="NN")
     parser.add_argument("--ssh-timeout", dest="ssh_timeout", type=int, default=120,
-                        help="Timeout for SSH session", metavar="SEC")
-    parser.add_argument("--noop", dest="noop", action="store_true", default=False,
-                        help="do not execute, print to log instead")
+                        help="Connection timeout for SSH session", metavar="SEC")
     parser.add_argument("--debug", dest="debug", action="store_true", default=False,
                         help="debug")
     args = parser.parse_args()
@@ -63,8 +63,8 @@ def main():
     LOG.info("Try to start daemon: {0}".format(' '.join(sys.argv)))
     cfg = vars(args)
     cfg['loglevel'] = _log_level
-    daemon = Daemon(cfg, logger=LOG)
-    daemon.start()
+    fdb_daemon = Daemon(cfg, logger=LOG)
+    fdb_daemon.start()
     sys.exit(0)
 
 if __name__ == '__main__':

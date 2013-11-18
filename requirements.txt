@@ -1,7 +1,5 @@
 paramiko>=1.12
 eventlet>=0.12
 greenlet>=0.4.0
-#cython
-#git+https://github.com/surfly/gevent.git@1.0rc2#egg=gevent
-python-quantumclient
+python-neutronclient
 python-keystoneclient

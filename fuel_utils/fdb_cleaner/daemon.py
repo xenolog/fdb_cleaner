@@ -7,9 +7,9 @@ try:
     from neutronclient.neutron import client as n_client
 except ImportError:
     from quantumclient.quantum import client as n_client
-from daemonize_green import Daemonize
-from config import AuthConfig
-from settings import LOG_NAME, API_VER
+from fuel_utils.core.daemonize_green import Daemonize
+from fuel_utils.fdb_cleaner.config import AuthConfig
+from fuel_utils.fdb_cleaner.settings import API_VER
 import sys
 import os
 import re
@@ -20,7 +20,7 @@ import paramiko
 
 class Daemon(Daemonize):
     """
-    Main daemon class
+    Main FDB-cleaner daemon class
     """
     def __init__(self, cfg, logger=None, green_pool_size=2000):
         self.options = cfg
@@ -120,24 +120,29 @@ class Daemon(Daemonize):
         # ssh to node
         self.logger.info(
             " ssh to '{node}:{port}'".format(node=node_hash.get('host'), port=self.options.get('ssh_port', '22')))
-        ssh = paramiko.SSHClient()
-        ssh.load_system_host_keys()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(
-            node_hash.get('host'),
-            port=self.options.get('ssh_port') or None,
-            username=self.options.get('ssh_username'),
-            password=self.options.get('ssh_password') or None,
-            timeout=self.options.get('ssh_timeout') or None,
-            key_filename=self.options.get('ssh_keyfile') or None,
-            #compress=False,
-        )
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.load_system_host_keys()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(
+                node_hash.get('host'),
+                port=self.options.get('ssh_port') or None,
+                username=self.options.get('ssh_username'),
+                password=self.options.get('ssh_password') or None,
+                timeout=self.options.get('ssh_timeout') or None,
+                key_filename=self.options.get('ssh_keyfile') or None,
+                #compress=False,
+            )
+        except paramiko.SSHException as e:
+            self.logger.error("Can't connect to '{node}:{port}'\n{error}".format(
+                node=node_hash.get('host'),
+                port=self.options.get('ssh_port', '22'),
+                error=e
+            ))
+            return None
         w = int(random.random() * 120)
         rcommands = [
             "ovs-appctl fdb/flush",
-            #"sleep {0}".format(w),
-            #"ls -la /",
-            #"echo {0} > /tmp/qqq-{1}.txt".format(node_hash.get('host'), os.getpid()),
         ]
         for rcmd in rcommands:
             try:
@@ -167,7 +172,6 @@ class Daemon(Daemonize):
                     error=e
                 ))
                 #raise(e)
-
         self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4

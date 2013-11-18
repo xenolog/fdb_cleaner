@@ -2,13 +2,11 @@
 from __future__ import unicode_literals
 import eventlet
 eventlet.monkey_patch()
-import fcntl
 import os
 import sys
 import errno
 import signal
 import logging
-from logging import handlers
 
 
 RunningGreenDaemons = set()

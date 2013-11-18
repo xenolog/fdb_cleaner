@@ -14,18 +14,18 @@ from distutils.core import setup
 
 #packages = find_packages()
 ConsoleScripts = [
-    'quantum-fdb-cleaner = fdb_cleaner.cli:main',
+    'fuel-fdb-cleaner = fuel_utils.fdb_cleaner:main',
 ]
 
 setup(
-    name='fdb_cleaner',
+    name='fuel_utils',
     version='0.0.1',
-    packages=['fdb_cleaner'],
-    url='https://github.com/xenolog/fdb_cleaner',
+    packages=['fuel_utils'],
+    url='https://github.com/xenolog/fuel_utils',
     license='Apache License, version 2.0',
     author='Sergey Vasilenko',
     author_email='svasilenko@mirantis.com',
-    description='tool for clean ovs FDB table ',
+    description='CLI utilitis for fuel project',
     #setup_requires=[
     #    'distribute>=0.6',
     #],
