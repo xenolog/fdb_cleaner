@@ -18,30 +18,6 @@ import time
 import paramiko
 
 
-def execute_remote_command(cls, node_hash):
-    # ssh to node
-    cls.logger.info(" ssh to '{node}:{port}'".format(node=node_hash.get('host'), port=cls.options.get('ssh_port', '22')))
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(
-        node_hash.get('host'),
-        port=cls.options.get('ssh_port') or None,
-        username=cls.options.get('ssh_username'),
-        password=cls.options.get('ssh_password') or None,
-        timeout=cls.options.get('ssh_timeout') or None,
-        key_filename=cls.options.get('ssh_keyfile') or None,
-        #compress=False,
-    )
-    w = int(random.random() * 120)
-    stdin, stdout, stderr = ssh.exec_command(
-        "sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(w, node_hash.get('host'), os.getpid()),
-        #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
-        #get_pty=False
-    )
-    cls.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
-
-
 class Daemon(Daemonize):
     """
     Main daemon class
@@ -133,11 +109,36 @@ class Daemon(Daemonize):
         # process nodes
         for node in nodes:
             self.logger.debug("+spawning: {0}".format(node.get('host')))
-            self.green_pool.spawn_n(execute_remote_command, self, node)
+            self.green_pool.spawn_n(self.worker, node)
             self.logger.debug("+spawned: {0}".format(node.get('host')))
         self.green_pool.waitall()
         self.logger.info("*** end of work")
         time.sleep(10)
         self.remove_pidfile()
+
+    def worker(self, node_hash):
+        # ssh to node
+        self.logger.info(
+            " ssh to '{node}:{port}'".format(node=node_hash.get('host'), port=self.options.get('ssh_port', '22')))
+        ssh = paramiko.SSHClient()
+        ssh.load_system_host_keys()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(
+            node_hash.get('host'),
+            port=self.options.get('ssh_port') or None,
+            username=self.options.get('ssh_username'),
+            password=self.options.get('ssh_password') or None,
+            timeout=self.options.get('ssh_timeout') or None,
+            key_filename=self.options.get('ssh_keyfile') or None,
+            #compress=False,
+        )
+        w = int(random.random() * 120)
+        stdin, stdout, stderr = ssh.exec_command(
+            "sleep {0} && echo {1} > /tmp/qqq-{2}.txt".format(w, node_hash.get('host'), os.getpid()),
+            #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
+            #get_pty=False
+        )
+        self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
+
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
