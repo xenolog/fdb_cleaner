@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import eventlet
+
 eventlet.monkey_patch()
 import re
 import sys
@@ -14,6 +15,7 @@ class BaseAuthConfig(object):
     read auth config and store it.
     Try be a singletone
     """
+
     def __init__(self):
         self._configs = {}
 
@@ -37,13 +39,14 @@ class BaseAuthConfig(object):
                 for line in f:
                     rg = re.match(r'\s*export\s+(\w+)\s*=\s*(.*)', line)
                     if rg:
-                        rv[rg.group(1).strip(stripchars)] = rg.group(2).strip(stripchars)
+                        rv[rg.group(1).strip(stripchars)] = \
+                            rg.group(2).strip(stripchars)
         except IOError:
             LOG.error("Can't open file '{path}'".format(path=cfg_file))
             sys.exit(errno.ENOENT)
-        # error detection
+            # error detection
         exit_msg = []
-        for i,e in auth_conf_errors.iteritems():
+        for i, e in auth_conf_errors.iteritems():
             if rv.get(i) is None:
                 exit_msg.append(e)
         if len(exit_msg) > 0:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import eventlet
+
 eventlet.monkey_patch()
 import os
 import sys
@@ -16,6 +17,7 @@ class StreamToLogger(object):
     """
     Fake file-like stream object that redirects writes to a logger instance.
     """
+
     def __init__(self, logger, log_level=logging.INFO):
         self.logger = logger
         self.log_level = log_level
@@ -64,7 +66,8 @@ class Daemonize(object):
         self.logger.setLevel(self.loglevel)
         # Display log messages only on defined handlers.
         self.logger.propagate = False
-        ## It will work on OS X and Linux. No FreeBSD support, guys, I don't want to import re here
+        ## It will work on OS X and Linux. No FreeBSD support, guys,
+        ## I don't want to import re here
         ## to parse your peculiar platform string.
         #if sys.platform == "darwin":
         #    syslog_address = "/var/run/syslog"
@@ -79,6 +82,7 @@ class Daemonize(object):
         You may override this method in a subclass.
         """
         import time
+
         time.sleep(25)
         self.logger.warn("green-daemon body. You must redefine run() method ")
 
@@ -97,15 +101,18 @@ class Daemonize(object):
 
     def create_pidfile(self, recurse=10):
         """
-        Create a locked PID-file so that only one instance of this daemon is running at any time.
+        Create a locked PID-file so that only one
+        instance of this daemon is running at any time.
         """
         try:
             fd = os.open(self.pidfile, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
         except OSError as e:
             self.logger.debug("errno='{0}'".format(e.errno))
             if e.errno in [errno.EACCES, errno.EAGAIN, errno.EEXIST]:
-                self.logger.warn("Can't create PID-file. "
-                                 "Pidfile '{file}' already exists.".format(file=self.pidfile))
+                self.logger.warn(
+                    "Can't create PID-file. "
+                    "Pidfile '{file}' already exists.".format(
+                        file=self.pidfile))
                 #find process with PID of it file
                 try:
                     with open(self.pidfile, 'r') as f:
@@ -118,34 +125,43 @@ class Daemonize(object):
                             try:
                                 os.kill(pid, 0)
                                 self.logger.error(
-                                    "Process with PID {0} found, exiting...".format(pid)
+                                    "Process with PID "
+                                    "{0} found, exiting...".format(pid)
                                 )
                                 sys.exit(2)
                             except OSError as e:
                                 if e.errno == errno.ESRCH and recurse > 0:
                                     self.logger.debug(
-                                        "Found PID-file, but process with PID={0} not found".format(pid)
+                                        "Found PID-file, but process with "
+                                        "PID={0} not found".format(pid)
                                     )
                                     os.unlink(self.pidfile)
-                                    return self.create_pidfile(recurse=recurse-1)
+                                    return self.create_pidfile(
+                                        recurse=recurse - 1)
                                 elif recurse <= 0:
                                     self.logger.error(
-                                        "Can't start daemon, due can't remove existing "
-                                        "PID-file '{0}' from another.".format(self.pidfile)
+                                        "Can't start daemon, "
+                                        "due can't remove existing "
+                                        "PID-file '{0}' from another.".format(
+                                            self.pidfile)
                                     )
                                     sys.exit(2)
                                 else:
                                     self.logger.error(
-                                        "Process with PID {0} found, exiting...".format(pid)
+                                        "Process with PID "
+                                        "{0} found, exiting...".format(pid)
                                     )
                                     sys.exit(2)
                         else:
-                            self.logger.debug("Found PID-file, that contains no PID.")
+                            self.logger.debug(
+                                "Found PID-file, that contains no PID.")
                             os.unlink(self.pidfile)
-                            return self.create_pidfile(recurse=recurse-1)
+                            return self.create_pidfile(recurse=recurse - 1)
                 except IOError as e:
-                        self.logger.error("Can't read PID from file '{file}'\n{err}".format(file=self.pidfile, err=e))
-                        sys.exit(2)
+                    self.logger.error(
+                        "Can't read PID from file "
+                        "'{file}'\n{err}".format(file=self.pidfile, err=e))
+                    sys.exit(2)
             else:
                 self.logger.error("Can't create PID-file.\n{0}".format(e))
             sys.exit(1)
@@ -178,9 +194,12 @@ class Daemonize(object):
             if os.fork() > 0:
                 sys.exit(0)     # kill off parent
         except OSError as e:
-            self.logger.error("fork #1 failed: {errno} {errmsg}".format(errno=e.errno, errmsg=e.strerror))
+            self.logger.error(
+                "fork #1 failed: "
+                "{errno} {errmsg}".format(
+                    errno=e.errno, errmsg=e.strerror))
             sys.exit(1)
-        self.logger.debug("fork #1 succeful.")
+        self.logger.debug("fork #1 successful.")
         os.setsid()
         os.chdir('/')
         os.umask(0o022)
@@ -190,7 +209,10 @@ class Daemonize(object):
             if os.fork() > 0:
                 sys.exit(0)
         except OSError as e:
-            self.logger.error("fork #2 failed: {errno} {errmsg}".format(errno=e.errno, errmsg=e.strerror))
+            self.logger.error(
+                "fork #2 failed: "
+                "{errno} {errmsg}".format(
+                    errno=e.errno, errmsg=e.strerror))
             sys.exit(1)
         self.logger.debug("fork #2 succeful.")
 
@@ -205,6 +227,8 @@ class Daemonize(object):
         signal.signal(signal.SIGHUP, sighup_handler)
 
         pid = self.create_pidfile()
-        self.logger.info("Daemonized succefuly, PID={pid}".format(pid=pid))
+        self.logger.info("Daemonized successfully, PID={pid}".format(pid=pid))
 
         self.run()
+
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
