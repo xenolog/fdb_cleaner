@@ -23,7 +23,7 @@ def main():
                         help="try NN retries for OpenStack API call", metavar="NN")
     parser.add_argument("--sleep", dest="sleep", type=int, default=2,
                         help="sleep seconds between retries", metavar="SEC")
-    parser.add_argument("--endpoint-type", dest="endpoint_type", action="store", default="admin",
+    parser.add_argument("--endpoint-type", dest="endpoint_type", action="store", default="adminURL",
                         help="Endpoint type ('admin' or 'public') for use.", metavar="TYPE")
     parser.add_argument("--ssh-username", dest="ssh_username", action="store", default='root',
                         help="Username for ssh connect", metavar="UNAME")
