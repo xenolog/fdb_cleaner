@@ -116,7 +116,7 @@ class Daemon(Daemonize):
         self._get_neutron()
         # ask neutron-api for list nodes with have ovs-agent
         agents = self._get_another_agents_list()
-        if type(agents) != dic or type(agents.get('agents')) != list:
+        if type(agents) != dict or type(agents.get('agents')) != list:
             return None
         nodes = [
             i for i in agents.get('agents')
@@ -175,10 +175,14 @@ class Daemon(Daemonize):
                 stdin, stdout, stderr = ssh.exec_command(
                     rcmd,
                     # COMMENT: What about default timeout for a command?
-                    #timeout=0.0,
+                    # timeout=0.0,
                     # for non-blocking mode (False -- for blocking mode)
-                    #get_pty=False
+                    # get_pty=False
                 )
+                #for line in stdout:
+                #    # pass
+                #    self.logger.debug("remote say: '{0}'".format(line.rstrip("\n")))
+                # waiting execute command and get return-code.
                 rc = stdout.channel.recv_exit_status()
                 err_msg = "{node}: '{cmd}', rc={rc}".format(
                     node=node_hash.get('host'),

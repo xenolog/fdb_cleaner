@@ -44,7 +44,8 @@ class BaseAuthConfig(object):
         except IOError:
             LOG.error("Can't open file '{path}'".format(path=cfg_file))
             sys.exit(errno.ENOENT)
-            # error detection
+
+        # error detection
         exit_msg = []
         for i, e in auth_conf_errors.iteritems():
             if rv.get(i) is None:
