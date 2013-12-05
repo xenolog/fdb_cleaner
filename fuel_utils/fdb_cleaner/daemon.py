@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import eventlet
+
 eventlet.monkey_patch()
 from keystoneclient.v2_0 import client as ks_client
+
 try:
     from neutronclient.neutron import client as n_client
 except ImportError:
@@ -22,6 +24,7 @@ class Daemon(Daemonize):
     """
     Main FDB-cleaner daemon class
     """
+
     def __init__(self, cfg, logger=None, green_pool_size=2000):
         self.options = cfg
         self.auth_config = AuthConfig.read(cfg.get('authconf'))
@@ -30,7 +33,8 @@ class Daemon(Daemonize):
         self.os_credentials = None
         self.keystone = None
         self.neutron = None
-        super(Daemon, self).__init__(cfg['pid'], logger, green_pool_size=green_pool_size)
+        super(Daemon, self).__init__(
+            cfg['pid'], logger, green_pool_size=green_pool_size)
 
     def _get_keystone(self):
         if not (self.os_credentials is None):
@@ -38,7 +42,9 @@ class Daemon(Daemonize):
         ret_count = self.options.get('retries', 50)
         while True:
             if ret_count <= 0:
-                self.logger.error(">>> Keystone error: no more retries for connect to keystone server.")
+                self.logger.error(
+                    ">>> Keystone error: "
+                    "no more retries for connect to keystone server.")
                 sys.exit(1)
             try:
                 self.keystone = ks_client.Client(
@@ -50,16 +56,26 @@ class Daemon(Daemonize):
                 break
             except Exception as e:
                 errmsg = e.message.strip()
+                # COMMENT: Very bad idea to think we can
+                # catch all known ways here
                 if re.search(r"Connection\s+refused$", errmsg, re.I) or \
-                        re.search(r"Connection\s+timed\s+out$", errmsg, re.I) or \
-                        re.search(r"Service\s+Unavailable$", errmsg, re.I) or \
-                        re.search(r"'*NoneType'*\s+object\s+has\s+no\s+attribute\s+'*__getitem__'*$", errmsg, re.I) or \
-                        re.search(r"No\s+route\s+to\s+host$", errmsg, re.I):
-                    self.logger.info(">>> Can't connect to {0}, wait for server ready..."
-                                     .format(self.auth_config.get('OS_AUTH_URL')))
-                    time.sleep(self.options.sleep)
+                    re.search(r"Connection\s+timed\s+out$", errmsg, re.I) or \
+                    re.search(r"Service\s+Unavailable$", errmsg, re.I) or \
+                    re.search(
+                        r"'*NoneType'.*attribute\s+'*__getitem__'*$",
+                        errmsg, re.I) or \
+                    re.search(
+                        r"No\s+route\s+to\s+host$", errmsg, re.I):
+                        self.logger.info(
+                            ">>> Can't connect to "
+                            "{0}, wait for server ready...".format(
+                                self.auth_config.get('OS_AUTH_URL')))
+                        time.sleep(self.options.sleep)
+                # COMMENT: I'm not sure the way how keystone client work's
+                # So 'else' branch can't be always a keystone error
                 else:
-                    self.logger.error(">>> Keystone error:\n{0}".format(e.message))
+                    self.logger.error(">>> Keystone error:\n"
+                                      "{0}".format(e.message))
                     sys.exit(1)
             ret_count -= 1
         self.os_credentials = {
@@ -75,7 +91,8 @@ class Daemon(Daemonize):
         }
 
     def _get_neutron(self):
-        if (self.os_credentials is None) or (self.os_credentials.get('net_endpoint') is None):
+        if (self.os_credentials is None) or \
+           (self.os_credentials.get('net_endpoint') is None):
             self.logger.error("Neutron: credentials not given.")
             sys.exit(1)
         self.neutron = n_client.Client(
@@ -99,12 +116,13 @@ class Daemon(Daemonize):
         self._get_neutron()
         # ask neutron-api for list nodes with have ovs-agent
         agents = self._get_another_agents_list()
-        if type(agents) != type({}) or type(agents.get('agents')) != type([]):
+        if type(agents) != dict or type(agents.get('agents')) != list:
             return None
-        nodes = [i for i in agents.get('agents')
-                 if i.get('agent_type') == 'Open vSwitch agent'
-                    and i.get('alive')
-                    and i.get('host') != os.getenv('HOSTNAME')
+        nodes = [
+            i for i in agents.get('agents')
+            if i.get('agent_type') == 'Open vSwitch agent'
+            and i.get('alive')
+            and i.get('host') != os.getenv('HOSTNAME')
         ]
         # process nodes
         for node in nodes:
@@ -119,7 +137,9 @@ class Daemon(Daemonize):
     def worker(self, node_hash):
         # ssh to node
         self.logger.info(
-            " ssh to '{node}:{port}'".format(node=node_hash.get('host'), port=self.options.get('ssh_port', '22')))
+            " ssh to '{node}:{port}'".format(
+                node=node_hash.get('host'),
+                port=self.options.get('ssh_port', '22')))
         try:
             ssh = paramiko.SSHClient()
             ssh.load_system_host_keys()
@@ -134,11 +154,17 @@ class Daemon(Daemonize):
                 #compress=False,
             )
         except paramiko.SSHException as e:
-            self.logger.error("Can't connect to '{node}:{port}'\n{error}".format(
-                node=node_hash.get('host'),
-                port=self.options.get('ssh_port', '22'),
-                error=e
-            ))
+            self.logger.error(
+                "Can't connect to '{node}:{port}'\n{error}".format(
+                    node=node_hash.get('host'),
+                    port=self.options.get('ssh_port', '22'),
+                    error=e))
+            return None
+        except:
+            self.logger.error(
+                "Can't connect to '{node}:{port}'\nUnrecognized error".format(
+                    node=node_hash.get('host'),
+                    port=self.options.get('ssh_port', '22')))
             return None
         w = int(random.random() * 120)
         rcommands = [
@@ -148,8 +174,10 @@ class Daemon(Daemonize):
             try:
                 stdin, stdout, stderr = ssh.exec_command(
                     rcmd,
-                    #timeout=0.0,  # for non-blocking mode (False -- for blocking mode)
-                    #get_pty=False
+                    # COMMENT: What about default timeout for a command?
+                    # timeout=0.0,
+                    # for non-blocking mode (False -- for blocking mode)
+                    # get_pty=False
                 )
                 #for line in stdout:
                 #    # pass
@@ -166,12 +194,17 @@ class Daemon(Daemonize):
                 else:
                     self.logger.error(err_msg)
             except paramiko.SSHException as e:
-                self.logger.error("{node}: '{cmd}', exception:\n{error}".format(
-                    node=node_hash.get('host'),
-                    cmd=rcmd,
-                    error=e
-                ))
-                #raise(e)
-        self.logger.debug("session to '{node}' done.".format(node=node_hash.get('host')))
+                self.logger.error(
+                    "{node}: '{cmd}', exception:\n{error}".format(
+                        node=node_hash.get('host'),
+                        cmd=rcmd,
+                        error=e))
+            except:
+                self.logger.error(
+                    "{node}: '{cmd}', exception:\nUnrecognized error".format(
+                        node=node_hash.get('host'),
+                        cmd=rcmd))
+        self.logger.debug(
+            "session to '{node}' done.".format(node=node_hash.get('host')))
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
